@@ -1,16 +1,24 @@
-import express from 'express';
+//import express from 'express';
 import sequelize from './config/database.js';
-import routes from './routes/index.js';
+//import routes from './routes/index.js';
+import User from './models/user.js';
+import Transaction from './models/transaction.js';
+//import 'dotenv/config';
 
-const app = express(); // Add this line to create the Express app instance
+try {
 
-sequelize.authenticate()
-  .then(() => console.log('Database connected'))
-  .catch(err => console.error('Error connecting to the database:', err));
+  sequelize.authenticate()
+  console.log('databse connected')
 
-app.use('/', routes());
+  await User.sync();
+  await Transaction.sync();
 
-const PORT = process.env.PORT || 3360;
-app.listen(PORT, () => {
+  console.log('Database synchronized')
+
+  app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`); // Use backticks for string interpolation
 });
+
+} catch (error) {
+  console.error('Error connecting to the database:', error);
+}

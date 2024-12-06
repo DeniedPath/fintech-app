@@ -31,12 +31,16 @@ const Transaction = sequelize.define('Transaction', {
   timestamps: true,
 });
 
-sequelize.sync({ force: true })
-  .then(() => {
-    console.log('Transaction model synced successfully');
-  })
-  .catch(err => {
-    console.error('Error syncing Transaction model:', err);
-  });
+const syncDb = async () => {
+  try {
+    await sequelize.authenticate();  // Test DB connection
+    console.log('Connection has been established successfully.');
+    await Customer.sync();  // Ensure the Customer table is created
+    await Product.sync();   // Ensure the Product table is created
+    console.log('Customer and Product tables synced successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
+};
 
 export default Transaction;
