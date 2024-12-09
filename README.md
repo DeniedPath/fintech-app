@@ -24,7 +24,7 @@ This application illustrates the process of establishing a Node.js server using 
 
 2. Install the required dependencies:
       bash
-   npm install
+   npm install mysql2 sequelize nodemon dotenv
 
 3. Configure your MySQL database and update the settings in config/database.js.
 4. Start the application:
