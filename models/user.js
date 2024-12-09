@@ -45,22 +45,6 @@ const User = sequelize.define('User', {
   timestamps: true,
 });
 
-// Function to synchronize the database
-const syncDb = async () => {
-  try {
-    // Test the database connection
-    await sequelize.authenticate();
-    console.log('Connection has been established successfully.');
-
-    // Synchronize the Customer and Product tables
-    await Customer.sync();
-    await Product.sync();
-    console.log('Customer and Product tables synced successfully.');
-  } catch (error) {
-    // Log any errors that occur during the synchronization process
-    console.error('Unable to connect to the database:', error);
-  }
-};
 
 // Export the User model
 export default User;

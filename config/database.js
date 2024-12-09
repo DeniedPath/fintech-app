@@ -14,14 +14,6 @@ const sequelize = new Sequelize(
   }
 );
 
-// Test the database connection and log success or error
-sequelize.authenticate()
-  .then(() => {
-    console.log('Database connection successful!');
-  })
-  .catch((err) => {
-    console.error('Unable to connect to the database:', err);
-  });
 
 // Export the Sequelize instance for use in other parts of the application
 module.exports = sequelize;
