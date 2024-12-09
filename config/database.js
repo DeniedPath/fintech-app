@@ -1,6 +1,6 @@
 // Import Sequelize and load environment variables
-const { Sequelize } = require('sequelize');
-require('dotenv').config();
+import Sequelize from 'sequelize';
+import "dotenv/config";
 
 // Create a Sequelize instance with environment variables
 const sequelize = new Sequelize(
@@ -16,4 +16,4 @@ const sequelize = new Sequelize(
 
 
 // Export the Sequelize instance for use in other parts of the application
-module.exports = sequelize;
+export default sequelize;
