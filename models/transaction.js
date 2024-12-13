@@ -1,6 +1,6 @@
 // Import necessary modules
 import { DataTypes } from 'sequelize';
-import sequelize from '../config/database.js';
+import sequelize from '../config/config.js';
 
 // Define the Transaction model
 const Transaction = sequelize.define('Transaction', {

@@ -1,5 +1,5 @@
 // Import necessary modules
-import sequelize from './config/database.js';
+import sequelize from './config/config.js';
 import User from './models/user.js';
 import Transaction from './models/transaction.js';
 
