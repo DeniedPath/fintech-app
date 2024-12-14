@@ -1,122 +1,137 @@
-import express from 'express';
-import  Transaction  from '../models/transaction.js'; // Assuming you have a Transaction model
-import  User  from '../models/user.js'; // Assuming you have a User model
+import express from 'express'; 
+import { Transaction } from '../models/DatabaseCreation.js'; 
 
 const router = express.Router();
 
-// Root route
-// Root route
-router.get('/', (req, res) => {
-    res.render('index', { title: 'Home Page' });
-  });
-  
-
-// Transaction routes
-router.get('/transactions', async (req, res) => {
+// Render index page with transactions
+// Render index page with transactions
+router.get('/', async (req, res) => {
   try {
-    const transactions = await Transaction.findAll();
-    res.render('transactions', { transactions });
-  } catch (error) {
-    console.error('Error fetching transactions:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+      console.log('User ID from request:', req.userId);
+
+      // Check if userId is defined
+      if (!req.userId) {
+          return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const transactions = await Transaction.findAll({
+          where: { userId: req.userId },
+          order: [['createdAt', 'DESC']]
+      });
+
+      console.log('Found transactions:', transactions.length);
+      console.log('Transaction data:', transactions);
+
+      res.render('pages/index', { 
+          transactions: transactions.map(t => t.toJSON())
+      }); 
+  } catch (err) {
+      console.error('Error fetching transactions:', err); 
+      res.status(500).json({ 
+          error: 'Error fetching transactions',
+          details: err.message
+      });
   }
 });
 
+
+// Create transaction
 router.post('/transactions', async (req, res) => {
-  try {
-    const { amount, description, date } = req.body;
-    const transaction = await Transaction.create({ amount, description, date });
-    res.status(201).json(transaction);
-  } catch (error) {
-    console.error('Error creating transaction:', error);
-    res.status(400).json({ message: 'Error creating transaction', error: error.message });
-  }
+    try {
+        const { type, amount, description } = req.body;
+        const userId = req.userId; // From auth middleware
+
+        // Get current balance
+        const transactions = await Transaction.findAll({
+            where: { userId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        let currentBalance = 0;
+        transactions.forEach(t => {
+            if (t.type === 'income') {
+                currentBalance += parseFloat(t.amount);
+            } else if (t.type === 'expense' || t.type === 'withdraw') {
+                currentBalance -= parseFloat(t.amount);
+            }
+        });
+
+        // Check if withdrawal is possible
+        if (type === 'withdraw') {
+            if (parseFloat(amount) > currentBalance) {
+                return res.status(400).json({ error: 'Insufficient balance for withdrawal' });
+            }
+        }
+
+        // Create the transaction
+        const newTransaction = await Transaction.create({ 
+            type, 
+            amount: parseFloat(amount), 
+            description,
+            userId,
+            balance: type === 'income' ? currentBalance + parseFloat(amount) : currentBalance - parseFloat(amount)
+        });
+
+        res.redirect('/');
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error creating transaction' });
+    }
 });
 
-router.delete('/transactions/:id', async (req, res) => {
-  try {
-    const transactionId = req.params.id;
-    const deletedCount = await Transaction.destroy({ where: { id: transactionId } });
-    if (deletedCount === 0) return res.status(404).json({ message: 'Transaction not found' });
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting transaction:', error);
-    res.status(500).json({ message: 'Error deleting transaction', error: error.message });
-  }
-});
-
+// Update transaction
 router.put('/transactions/:id', async (req, res) => {
-  try {
-    const transactionId = req.params.id;
-    const { amount, description, date } = req.body;
-    const [updated] = await Transaction.update(
-      { amount, description, date },
-      { where: { id: transactionId } }
-    );
-    if (updated) {
-      const updatedTransaction = await Transaction.findByPk(transactionId);
-      res.status(200).json(updatedTransaction);
-    } else {
-      res.status(404).json({ message: 'Transaction not found' });
+    try {
+        const transactionId = req.params.id;
+        const { type, amount, description } = req.body;
+
+        const [updated] = await Transaction.update(
+            { type, amount, description },
+            { where: { id: transactionId } }
+        );
+
+        if (updated) {
+            res.status(200).json({ message: 'Transaction updated successfully' });
+        } else {
+            res.status(404).json({ message: 'Transaction not found' });
+        }
+    } catch (error) {
+        console.error('Error updating transaction:', error);
+        res.status(400).json({ message: 'Error updating transaction', error: error.message });
     }
-  } catch (error) {
-    console.error('Error updating transaction:', error);
-    res.status(400).json({ message: 'Error updating transaction', error: error.message });
-  }
 });
 
-// User routes
-router.get('/users', async (req, res) => {
-  try {
-    const users = await User.findAll();
-    res.render('users', { users });
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
-  }
-});
-
-router.post('/users', async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-    const user = await User.create({ username, email, password });
-    res.status(201).json(user);
-  } catch (error) {
-    console.error('Error creating user:', error);
-    res.status(400).json({ message: 'Error creating user', error: error.message });
-  }
-});
-
-router.delete('/users/:id', async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const deletedCount = await User.destroy({ where: { id: userId } });
-    if (deletedCount === 0) return res.status(404).json({ message: 'User not found' });
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).json({ message: 'Error deleting user', error: error.message });
-  }
-});
-
-router.put('/users/:id', async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const { username, email, password } = req.body;
-    const [updated] = await User.update(
-      { username, email, password },
-      { where: { id: userId } }
-    );
-    if (updated) {
-      const updatedUser = await User.findByPk(userId);
-      res.status(200).json(updatedUser);
-    } else {
-      res.status(404).json({ message: 'User not found' });
+// Delete transaction
+router.delete('/transactions/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deleted = await Transaction.destroy({
+            where: { id }
+        });
+        if (deleted) {
+            res.redirect('/'); 
+        } else {
+            res.status(404).json({ error: 'Transaction not found' });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error deleting transaction' });
     }
-  } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(400).json({ message: 'Error updating user', error: error.message });
-  }
 });
 
-export default router;
+router.get('/index', (req, res) => {
+  res.render('index');
+});
+
+router.get('/login', (req, res) => {
+  res.render('login');
+});
+
+router.get('/register', (req, res) => {
+  res.render('register');
+});
+
+router.get('/dashboard', (req, res) => {
+  res.render('dashboard');
+});
+export default router; 
