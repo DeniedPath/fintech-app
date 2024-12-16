@@ -4,7 +4,7 @@ export const authenticateToken = (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) {
-        return res.redirect('/index');
+        return res.redirect('/dashboard');
     }
 
     try {
@@ -17,6 +17,6 @@ export const authenticateToken = (req, res, next) => {
     } catch (error) {
         console.error('Authentication error:', error);
         res.clearCookie('token');
-        return res.redirect('/index');
+        return res.redirect('/dashboard');
     }
 }; 

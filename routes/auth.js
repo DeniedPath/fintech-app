@@ -1,18 +1,61 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/DatabaseCreation.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { Transaction, User } from '../models/DatabaseCreation.js';
 
 const router = express.Router();
 
 // Render register page
 router.get('/register', (req, res) => {
-    res.render('routes/index.js/register');
+    res.render('register');
 });
 
 // Render login page
 router.get('/login', (req, res) => {
-    res.render('routes/index.js/login');
+    res.render('login');
+});
+
+router.get('/dashboard', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.userId, {
+            include: [Transaction]
+        });
+
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        const accountBalance = user.Transactions.reduce((total, transaction) => {
+            if (transaction.type === 'income') {
+                return total + parseFloat(transaction.amount);
+            } else {
+                return total - parseFloat(transaction.amount);
+            }
+        }, 0);
+
+        res.render('dashboard', { accountBalance, userId: req.userId });
+    } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        res.status(500).send('Error loading dashboard');
+    }
+});
+
+
+router.post('/transactions', authenticateToken, async (req, res) => {
+    try {
+        const { type, amount, description } = req.body;
+        await Transaction.create({
+            type,
+            amount: parseFloat(amount),
+            description,
+            userId: req.userId
+        });
+        res.redirect('/dashboard');
+    } catch (error) {
+        console.error('Error creating transaction:', error);
+        res.status(500).send('Error creating transaction');
+    }
 });
 
 // Handle user registration
@@ -22,29 +65,29 @@ router.post('/register', async (req, res) => {
 
         // Validate input
         if (!name || !email || !password) {
-            return res.status(400).json({ error: 'All fields are required' });
+            return res.render('register', { error: 'All fields are required' });
         }
 
         // Check if user already exists
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ error: 'Email already registered' });
+            return res.render('register', { error: 'Email already registered' });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create user
-        const user = await User.create({
+        await User.create({
             name,
             email,
             password: hashedPassword
         });
 
-        res.status(201).json({ message: 'Registration successful' });
+        res.redirect('/login');
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Error registering user' });
+        res.render('register', { error: 'Error registering user' });
     }
 });
 
@@ -56,13 +99,13 @@ router.post('/login', async (req, res) => {
         // Find user
         const user = await User.findOne({ where: { email } });
         if (!user) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.render('login', { error: 'Invalid email or password' });
         }
 
         // Check password
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.render('login', { error: 'Invalid email or password' });
         }
 
         // Create JWT token
@@ -79,17 +122,30 @@ router.post('/login', async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
 
-        res.json({ message: 'Login successful' });
+        res.redirect('/dashboard');
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Error logging in' });
+        res.render('login', { error: 'Error logging in' });
+    }
+});
+
+router.get('/transactions', authenticateToken, async (req, res) => {
+    try {
+        const transactions = await Transaction.findAll({
+            where: { userId: req.userId },
+            order: [['createdAt', 'DESC']]
+        });
+        res.render('transactions', { transactions });
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        res.status(500).render('error', { message: 'Error fetching transactions' });
     }
 });
 
 // Handle logout
 router.get('/logout', (req, res) => {
     res.clearCookie('token');
-    res.redirect('/routes/login');
+    res.redirect('/login');
 });
 
-export default router; 
+export default router;

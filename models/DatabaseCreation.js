@@ -115,4 +115,7 @@ const insertSampleData = async () => {
     }
 };
 
+User.hasMany(Transaction);
+Transaction.belongsTo(User);
+
 export { createDatabase, Transaction, User };
