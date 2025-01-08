@@ -19,4 +19,4 @@ export const authenticateToken = (req, res, next) => {
         res.clearCookie('token');
         return res.redirect('/dashboard');
     }
-}; 
+};

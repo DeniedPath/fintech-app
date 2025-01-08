@@ -21,6 +21,10 @@ const Transaction = sequelize.define('Transaction', {
     userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     }
 }, { 
     timestamps: true,
@@ -63,11 +67,11 @@ const createDatabase = async () => {
         await sequelize.authenticate();
         console.log('Connection has been established successfully.');
         
-        // Create tables if they don't exist (removed force: true)
-        await sequelize.sync();
+        // Force recreate tables
+        await sequelize.sync({ force: true });
         console.log('Database and tables synchronized');
         
-        // Insert sample data only if no data exists
+        // Insert sample data
         await insertSampleData();
     } catch (error) {
         console.error('Unable to initialize database:', error);
@@ -114,8 +118,5 @@ const insertSampleData = async () => {
         console.error('Error inserting sample data:', error);
     }
 };
-
-User.hasMany(Transaction);
-Transaction.belongsTo(User);
 
 export { createDatabase, Transaction, User };
