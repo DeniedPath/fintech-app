@@ -1,7 +1,8 @@
-// Set up Sequelize connection with additional configuration
+import { Sequelize } from 'sequelize';
+
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
+    port: process.env.DB_PORT,
     dialect: 'mysql',
     logging: false,
     dialectOptions: {
@@ -9,8 +10,7 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
     }
 });
 
-// Modified connect function
-export async function connect() {
+async function initializeDatabase() {
     try {
         await sequelize.authenticate();
         console.log('Connected to the MySQL server.');
@@ -30,3 +30,5 @@ export async function connect() {
         process.exit(1);
     }
 }
+
+export { sequelize, initializeDatabase };

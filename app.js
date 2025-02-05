@@ -6,7 +6,7 @@ import path from 'path';
 import 'dotenv/config';
 import taskRoutes from './routes/index.js';
 import authRoutes from './routes/auth.js';
-import { connect } from './config/config.js';
+import { sequelize } from './config/config.js';
 import { authenticateToken } from './middleware/auth.js';
 import transactionRoutes from './routes/index.js';
 
@@ -15,8 +15,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 2555;
-
-connect();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
