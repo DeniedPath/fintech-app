@@ -1,38 +1,32 @@
-import { Sequelize } from 'sequelize'; // Import Sequelize
-import { fileURLToPath } from 'url';
-import path from 'path';
-import { config } from 'dotenv';
-import { createDatabase } from '../models/DatabaseCreation.js'; // Import the function from DatabaseCreation.js
-
-// Resolve __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Explicitly set the path to the .env file in the root directory
-config({ path: path.resolve(__dirname, '../.env') }); // Adjust if .env is not in the root directory
-
-// Set up Sequelize connection
+// Set up Sequelize connection with additional configuration
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
     dialect: 'mysql',
-    logging: false, // Specify the dialect
+    logging: false,
+    dialectOptions: {
+        multipleStatements: true // Enable multiple statements
+    }
 });
 
-// Function to connect to the database
+// Modified connect function
 export async function connect() {
     try {
-        await sequelize.authenticate(); // Authenticate the connection
+        await sequelize.authenticate();
         console.log('Connected to the MySQL server.');
         
-        // Invoke the database and table creation process
-        await createDatabase(); // Call the function that starts the process of creating the database and tables
+        // Disable foreign key checks before sync
+        await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+        
+        // Create database and tables
+        await createDatabase();
+        
+        // Re-enable foreign key checks
+        await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+        
         console.log('Database and tables synchronized');
     } catch (err) {
         console.error('Unable to connect to the database:', err);
-        process.exit(1); // Exit process on server connection error
+        process.exit(1);
     }
 }
-
-// Export the sequelize instance for use in other parts of the app
-export { sequelize };
